@@ -2,9 +2,9 @@
 title: "DATASCI 306, Fall 2024, Final Group Project"
 author: "Group Number 25: Nico Cuccarese, Bowei Feng, Christopher Park, Freddy Quarshie"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -36,9 +36,15 @@ Hint: Some of the steps you may take while importing include:
 ```{r}
 library(readxl)
 library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(caret)
 
-estimates_table <- read_excel("data/WPP2024_GEN_F01_DEMOGRAPHIC_INDICATORS_COMPACT.xlsx", sheet = "Estimates", skip = 16, col_types = "text")
-medium_variant_table <- read_excel("data/WPP2024_GEN_F01_DEMOGRAPHIC_INDICATORS_COMPACT.xlsx", sheet = "Medium variant", skip = 16, col_types = "text")
+estimates_table <- read_excel("data/WPP2024_GEN_F01_DEMOGRAPHIC_INDICATORS_COMPACT.xlsx", 
+                              sheet = "Estimates", skip = 16, col_types = "text")
+medium_variant_table <- read_excel("data/WPP2024_GEN_F01_DEMOGRAPHIC_INDICATORS_COMPACT.xlsx", 
+                                   sheet = "Medium variant", skip = 16, col_types = "text")
 
 ```
 **2. Requirement-2 (5 pt)**
@@ -54,8 +60,9 @@ You could also remove the countries/regions that you are not interested in explo
 
 Explain your reasoning for each clean up step.
 Takes in col names and gets rid of 
+Load in all necessary libraries
+
 ```{r}
-library(dplyr)
 #Explanation: Takes in a data frames and cleans up the column names 
 rename_cols <- function(df) {
   df <- df |>
@@ -64,7 +71,6 @@ rename_cols <- function(df) {
     rename_with(~ tolower(.))
   return(df)
 }
-
 estimates_clean <- rename_cols(estimates_table)
 medium_clean <- rename_cols(medium_variant_table)
 ```
@@ -78,13 +84,12 @@ medium_clean <- medium_clean[medium_clean$type != "Label/Separator", ]
 ```{r}
 #Get rid of some uneccessary rows
 clean_cols <- function(df) {
-  df %>% select(-c("variant", "notes", "location_code", "iso3_alphacode", "iso2_alphacode", "sdmx_code", "type", "parent_code"))
+  df %>% select(-c("variant", "notes", "location_code", "iso3_alphacode", 
+                   "iso2_alphacode", "sdmx_code", "type", "parent_code"))
 }
-
 estimates_clean <- clean_cols(estimates_clean)
 medium_clean <- clean_cols(medium_clean)
 ```
-
 
 ```{r}
 #Takes in a dataframe and convert n -> N as numeric.
@@ -94,30 +99,31 @@ convert_columns_to_numeric <- function(data, n) {
   })
   return(data)
 }
-  
 estimates_clean <- convert_columns_to_numeric(estimates_clean, 3)
 medium_clean <- convert_columns_to_numeric(medium_clean, 3)
 ```
 
 ```{r}
+#Created a combined data set for easier use on certain graphs
 combined_data <- bind_rows(estimates_clean, medium_clean)
 ```
 
 **3.  Requirement-3 (3 pt)**
 Replicate the 6 diagrams shown in the article.  Show only the '2024' projection values where ever you have both '2022' and '2024' displayed. 
 Show only the diagrams that are shown on the webpage with default options.
-Graph 1: 
+
+**Graph 1:**
+
 ```{r}
-library(ggplot2)
-library(dplyr)
-library(scales)
 medium_clean |>
   filter(region_subregion_country_or_area_ == "World") |> mutate(year = as.numeric(year)) |> ggplot(aes(x = year, y = total_population_as_of_1_january_thousands)) + geom_line(group = 1, color = "blue") + geom_point(color = "blue") +
   labs(
     title = "Total Population - World",x = "Year", y = "Population (Billions)") + scale_x_continuous(breaks = c(2024, 2040, 2050, 2060, 2070, 2080, 2090, 2100)) +
   scale_y_continuous(breaks = c(8.5e6, 9e6, 9.5e6, 10e6), labels = c("8.5B", "9B", "9.5B", "10B"))
 ```
-Graph 2
+
+**Graph 2:**
+
 ```{r} 
 #This one needs fixing
 medium_clean |>
@@ -125,9 +131,10 @@ medium_clean |>
   labs(
     title = "Total Population - World",x = "Year", y = "Population (Billions)") + scale_x_continuous(breaks = c(2024, 2050, 2080)) + facet_wrap(~region_subregion_country_or_area_, scales = "free_y")
 ```
-Graph 3
+
+**Graph 3:**
+
 ```{r}
-library(ggplot2)
 complete_data <- bind_rows(estimates_clean, medium_clean)
 complete_data |>
   select(year, region_subregion_country_or_area_, total_fertility_rate_live_births_per_woman) |>
@@ -156,11 +163,9 @@ complete_data |>
 
 ```
 
-Graph 4 
-```{r}
-library(ggplot2)
-library(dplyr)
+**Graph 4:**
 
+```{r}
 # Filter for India and China population data from combined_data
 graph_4_data <- complete_data %>%
   filter(region_subregion_country_or_area_ %in% c("India", "China")) %>%
@@ -196,7 +201,7 @@ ggplot(graph_4_data, aes(x = year, y = population_billions, color = region_subre
 
 ```
 
-Graph 5
+**Graph 5:**
 
 ```{r}
 countries <- c("World", "Africa", "Asia", "Europe", "Northern America", "Latin America and the Caribbean")
@@ -224,7 +229,8 @@ estimates_clean |>
 
 ```
 
-Graph 6
+**Graph 6:**
+
 ```{r}
 estimates_clean |>
   filter(region_subregion_country_or_area_ == "Ukraine") |>
@@ -233,15 +239,18 @@ estimates_clean |>
   geom_point() + geom_line() + scale_x_continuous(breaks = c(1950, 1960, 1970, 1980, 1990, 2000, 2010, 2023)) + labs(title = "Annual net migration in Ukraine, 1950 to 2023", x = "Year", y = "Net Migration") + scale_y_continuous(breaks = c(0, -2000, -4000), labels = c("0", "-2 Million", "-4 million"))
 
 ```
+
 **4.  Requirement-4 (12 pt)**
 
 Select United States related data, and any other country or region(s) of your choosing to perform EDA. Chart at least 12 additional diagrams that may show relationships like correlations, frequencies, trend charts, between various variables with plots of at least 3 different types (line, heatmap, pie, etc.). Every plot should have a title and the x/y axis should have legible labels without any label overlaps for full credit. 
 
 Summarize your interpretations after each chart.
-**Let's analyze different variables based on gender**
-Graph 1
-```{r}
 
+**Let's analyze different variables based on gender**
+
+**Graph 1**
+
+```{r}
 estimates_clean |>
   filter(year == 2022 & region_subregion_country_or_area_ == "World") |>
   summarise(
@@ -266,11 +275,12 @@ estimates_clean |>
     panel.grid = element_blank(),
     plot.title = element_text(size = 18, face = "bold")
   )
-
-
-
 ```
-Graph 2
+
+The first graph provides a baseline overview of the global gender distribution, showing the near 50/50 split between males and females. This serves as a reference point for understanding deviations in gender ratios across different regions.
+
+**Graph 2:**
+
 ```{r}
 estimates_clean |>
   select(year, region_subregion_country_or_area_, female_population_as_of_1_july_thousands) |>
@@ -287,8 +297,11 @@ estimates_clean |>
   theme_minimal()
 
 ```
-The shape of the line graphs suggests that male and females in their respective countries are expected to grow at a similiar rate; however, a side by side comparison suggests otherwise
-Graph 3
+
+The second graph highlights female population growth over the decades, segmented by region. Asia leads with the highest growth rate, mirroring broader global population trends documented by the United Nations. Europe, by contrast, shows more modest growth, reflecting slower demographic shifts in the region
+
+**Graph 3**
+
 ```{r}
 estimates_clean |>
   select(year, region_subregion_country_or_area_, male_population_as_of_1_july_thousands, female_population_as_of_1_july_thousands) |>
@@ -314,11 +327,12 @@ estimates_clean |>
     axis.text = element_text(size = 12),
     strip.text = element_text(size = 14, face = "bold")
   )
-
-
 ```
-What percentage of the world is male/female (pie chart with percentage of male and female based on UN estimates in 2100?)
-Graph 4
+
+This graph showcases regional variations in the male-to-female population ratio. Europe stands out with a female-dominant population, likely influenced by differences in life expectancy and possibly cultural factors. In the United States, the gender ratio fluctuates notably between the 1970s and 1980s, potentially reflecting demographic shifts during the Vietnam War. Asia, on the other hand, exhibits a male-dominant ratio, which can be linked to historical factors such as the One Child Policy and cultural gender preferences.
+
+**Graph 4:**
+
 ```{r}
 estimates_clean |>
   filter(region_subregion_country_or_area_ %in% c("World", "Asia", "United States of America", "Europe")) |>
@@ -342,19 +356,21 @@ estimates_clean |>
     axis.text = element_text(size = 12),
     strip.text = element_text(size = 14, face = "bold")  # Bold facet titles
   )
-
-
-
 ```
-GRAPH 5
-Heatmap: Fertility rate for multiple countries over decades
-# Create a heat map 
+
+The graph shows the Male-to-Female population ratio across different regions.  In the United States, the male-to-female ratio exhibits a noticeable dip during the 1970s and 1980s, possibly linked to the Vietnam War's demographic impact, which disproportionately affected the male population. Asia consistently shows a higher male-to-female ratio, reflecting the influence of historical policies such as the One Child Policy and cultural preferences for male offspring. Meanwhile, Europe’s ratio highlights a steady surplus of females, likely due to longer female life expectancy and lower male survival rates.
+
+Now let's look at fertility rates in different countries.
+
+**Graph 5:**
+
 ```{r}
 combined_data %>% filter(region_subregion_country_or_area_ %in% c("United States", "China", "India",  "Russia", "Japan", "South Korea", "Vietnam", "Nigeria", "Saudi Arabia")) %>% select(year, region_subregion_country_or_area_, total_fertility_rate_live_births_per_woman) %>%  ggplot(aes(x = as.numeric(year), y = region_subregion_country_or_area_, fill = total_fertility_rate_live_births_per_woman)) + geom_tile(color = "white") + scale_fill_viridis_c(option = "magma", name = "Fertility Rate") +labs(title = "Fertility Rate Heatmap (1950-2100)", x = "Year", y = "Country") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
-GRAPH 6
-Bar chart:  Fertility rates in major continents of the world in year 2100
-# Filters data for the year 2100 and the major continents 
+
+*The heat map displays the fertility rates of these randomly selected countries in the Eastern world: Saudi Arabia, Nigeria, Japan, India, and China from 1950 - 2100. The colors from darkest to lightest represent the lowest to highest fertility rate numerical values (dark purple/black to light yellow/pink). Based on the heatmap, Japan tends to have the lowest fertility rate, showing darker shades of purple from 1950 to 2100. Meanwhile, Nigeria had the highest fertility rate of roughly six from 1950 to mid-2020 but was on the trend to decrease to nearly 2 in 2100. On the other hand, China is following in Japan’s footsteps, where its fertility rate has been increasing by almost two from the present to 2100. However, it used to have high fertility rates due to the country’s past economic difficulties in the 1950s-70s. Lastly, Saudi Arabia had the highest fertility rate of nearly 8 in 1950 but it started to decrease rapidly in the late 70s and early 80s, when their oil started to become commodified in the global market, promoting high economic growth and urbanization, leading their fertility rate to being nearly 2 in 2100. So, this heat map shows the range of fertility rates and their changes over time in these specific countries. 
+
+**Graph 6:**
 
 ```{r}
 medium_clean %>% filter(year == 2100, region_subregion_country_or_area_ %in% c("Northern America", "Asia", "Europe", "Africa", "Latin America and the Caribbean")) %>%  group_by(region_subregion_country_or_area_) %>%
@@ -364,9 +380,11 @@ ggplot(aes(x = region_subregion_country_or_area_, y = avg_fertility_rate, fill =
   )
 ```
 
-GRAPH 7
-Line chart: Trends in Fertility Rates Over Time: United States vs. India
-# Filter data for US and India and create the line chart
+The bar chart compares fertility rates (live births per woman) by continent in 2100 between Africa, Asia, and Europe. From this figure, in the year 2100, the fertility rate for Africa is 2.0, Asia is 1.75, and Europe is 1.6. In simpler terms, Africa has the highest fertility rate while Europe has the lowest. These numerical values for the fertility rates of these continents are roughly around the replacement level fertility rate, which is approximately 2.1 live births per woman to sustain the population. However, Asia and Europe will see a declining fertility rate because their fertility rate is lower than the replacement level. At the same time, Africa will stabilize since it is close to 2.1 births per woman in 2100. These findings may include the assumption that these continents have become so advanced economically, socially, and technologically that the fertility rate of these continents will decline rapidly, given its expected results in 2100. 
+
+
+**Graph 7:**
+
 ```{r}
 estimates_clean %>%
  filter(region_subregion_country_or_area_ %in% c("United States of America", "India")) %>%
@@ -374,17 +392,22 @@ select(year, region_subregion_country_or_area_, total_fertility_rate_live_births
 ggplot(aes(x = as.numeric(year),  y = total_fertility_rate_live_births_per_woman, color = region_subregion_country_or_area_)) + geom_line(size = 1) +  labs(title = "Trends in Fertility Rates Over Time: United States vs. India", x = "Year", y = "Fertility Rate (Live Births per Woman)", color = "Country") + theme_minimal()
 ```
 
-Graph 8
+*The line chart compares the fertility rates in the US and India from the 1950s to the 2020s (Live births per woman). The US and India are among the most highly populated countries in the world. In 1950, India had a fertility rate of roughly 6, while the US had 3. However, in the early to mid-1960s, fertility rates in the US and India peaked at their highest level but slowly declined afterward. The fertility rate of the US significantly decreased from 1960 to the late 1970s due to its involvement in the Vietnam War. Still, it started to stabilize in the 1980s-90s when it experienced economic growth, urbanization, and modernization of societal norms. Meanwhile, India has steadily decreased as the country experienced economic growth, more educational opportunities, and urbanization, but it currently goes through health issues like obesity, smoking, and air pollution. As of 2020, the fertility rate in the US is roughly 1.6, while in India, it is 2. So it is interesting to see the trends in the fertility rate of both countries, which tend to have the highest population in the world.  
+
+**Graph 8:**
+
 ```{r}
 medium_clean |>
   filter(region_subregion_country_or_area_ == "World") |> mutate(year = as.numeric(year)) |> ggplot(aes(x = year, y = crude_death_rate_deaths_per_1000_population)) + geom_line(group = 1, color = "blue") + geom_point(color = "blue") +
   labs(
     title = "Death Rate - World",x = "Year", y = "Deaths per 1000 People") + scale_x_continuous(breaks = c(2024, 2030, 2040, 2050, 2060, 2070, 2080, 2090, 2100)) +
   theme_minimal()
-
-
 ```
-Graph 9
+
+This chart shows that the UN projection of the world’s death rate is a steady increase from now until 2100. My interpretation is that this is because as the world’s population increases, there will also be more people susceptible to dying, especially elderly people. Also, we are heading towards a point where the world’s population will peak, so as we approach that point, the death rate should be increasing faster than the birth rate and part of that is reflected by the consistent increase in the graph.
+
+**Graph 9:**
+
 ```{r}
 combined_data |>
   select(year, region_subregion_country_or_area_, crude_death_rate_deaths_per_1000_population) |>
@@ -411,7 +434,11 @@ combined_data |>
   guides(color = guide_legend(nrow = 2))
 
 ```
-Graph 10
+
+This graph shows the death rate over time for each continent and the world from 1950 to the projected death rate in 2100. Just like the fertility graph presented in the article, there is a large variation in the death rates in 1950, but the variation decreases as we approach 2100. I believe this is because as time goes on, the death rates of all the regions and continents are converging towards the average death rate of the world. Another interesting finding is that you can see spikes in the chart that represent times when the death rate unusually increased. For example, all the lines have spikes around 2020 because this is when the COVID-19 pandemic was happening.
+
+**Graph 10:**
+
 ```{r}
 estimates_clean %>% 
   filter(year == "2023", region_subregion_country_or_area_ %in% c("Northern America", "Asia", "Europe", "Africa", "Latin America and the Caribbean")) %>%  
@@ -423,14 +450,13 @@ ggplot(aes(x = region_subregion_country_or_area_, y = avg_death_rate, fill = reg
   theme(axis.text.x = element_blank(),
   axis.ticks.x = element_blank()) +
   scale_y_continuous(breaks = seq(0, 12, by = 2))
-
 ```
 
-Graph 11
-```{r}
-library(ggplot2)
-library(dplyr)
+This graph shows the death rate for each continent in the year 2023. I think it’s interesting how Europe has a much higher death rate than all the other groups, despite its advances in health and technology. I believe that because of those advances, Europe has an aging population that is now dying off and increasing the death rate.  
 
+**Graph 11:**
+
+```{r}
 # Filter estimates_clean for Afghanistan, Iran, and Viet Nam
 selected_countries_data <- estimates_clean %>%
   filter(
@@ -470,11 +496,11 @@ ggplot(selected_countries_data, aes(x = year, y = life_expectancy, color = regio
 
 ```
 
+This graph highlights the trends in life expectancy at age 65 in Afghanistan, Iran, and Viet Nam from 1950 to 2024, reflecting significant historical and social events. Afghanistan's life expectancy exhibits sharp declines during periods of conflict, such as the Soviet-Afghan War (1980s) and the post-2001 war, emphasizing the devastating impacts of prolonged violence. Iran (Islamic Republic of) shows a steady increase in life expectancy, with slight stagnation during the Iran-Iraq War (1980-1988), illustrating resilience despite geopolitical challenges. Viet Nam demonstrates rapid improvements, particularly after the Vietnam War (1955-1975) and economic reforms (Doi Moi) in the late 1980s, indicating recovery and development post-conflict. These patterns underscore the profound influence of wars, recovery, and socio-economic progress on health and longevity.
 
-Graph 12
+**Graph 12:**
+
 ```{r}
-library(ggplot2)
-library(dplyr)
 
 # Filter estimates_clean for Bangladesh, China, and Haiti
 disaster_countries_data <- estimates_clean %>%
@@ -514,6 +540,9 @@ ggplot(disaster_countries_data, aes(x = year, y = life_expectancy, color = regio
   )
 ```
 
+This graph illustrates the life expectancy at birth in Bangladesh, China, and Haiti from 1950 to 2024, highlighting the profound impact of major natural disasters. In Bangladesh, the sharp decline around 1970 corresponds to the Bhola Cyclone, which claimed over 300,000 lives, demonstrating the devastating toll of this event. China's decline in the early 1960s reflects the aftermath of the Great Chinese Famine (1959–1961), exacerbated by natural disasters and policy failures, resulting in millions of deaths. In Haiti, the sharp drop in 2010 is associated with the catastrophic Haiti Earthquake, which killed between 100,000 and 316,000 people, emphasizing the vulnerability of highly populated regions with inadequate infrastructure. Despite these disruptions, the long-term trends show resilience and recovery in all three countries.
+
+
 **5. Requirement-5 (2 pt)**
 Having developed a strong understanding of your data, you'll now create a machine learning (ML) model to predict a specific metric. This involves selecting the most relevant variables from your dataset.
 
@@ -524,10 +553,6 @@ You can choose to predict the same metric the UN provides (e.g., future populati
 How significantly do your population projections diverge from those of the United Nations? Provide a comparison of the two.  If you choose a different projection for which there is no UN data to compare with, then this comparison is not required.
 
 ```{r}
-# Load necessary libraries
-library(tidyverse)
-library(caret)
-
 # Filter the dataset for training (1950-2022)
 training_data <- selected_countries_data %>%
   filter(year >= 1950 & year <= 2022)
@@ -587,7 +612,9 @@ ggplot(selected_countries_data, aes(x = year)) +
     legend.position = "bottom"
   )
 
+
 ```
+
 
 **6.  Requirement-5 (1 pt)**
 
