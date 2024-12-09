@@ -2,9 +2,9 @@
 title: "DATASCI 306, Fall 2024, Final Group Project"
 author: "Group Number 25: Nico Cuccarese, Bowei Feng, Christopher Park, Freddy Quarshie"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -241,121 +241,277 @@ Summarize your interpretations after each chart.
 **Let's analyze different variables based on gender**
 Graph 1
 ```{r}
+
 estimates_clean |>
-  select(year, region_subregion_country_or_area_, male_population_as_of_1_july_thousands, female_population_as_of_1_july_thousands) |>
-  filter(region_subregion_country_or_area_ == "World") |>
-  ggplot(aes(x = as.numeric(year), y = male_population_as_of_1_july_thousands)) +
-  geom_line() + geom_point() +
+  filter(year == 2022 & region_subregion_country_or_area_ == "World") |>
+  summarise(
+    Male = sum(male_population_as_of_1_july_thousands),
+    Female = sum(female_population_as_of_1_july_thousands)
+  ) |>
+  pivot_longer(cols = c(Male, Female), names_to = "Gender", values_to = "Population") |>
+  mutate(Percentage = Population / sum(Population) * 100) |>
+  ggplot(aes(x = "", y = Population, fill = Gender)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = paste0(round(Percentage, 1), "%")), 
+            position = position_stack(vjust = 0.5), size = 5) +
   labs(
-    title = "Male Population Over Time",
-    x = "Year",
-    y = "Male Population (Thousands)"
+    title = "Male-to-Female Population Ratio in the World (2022)",
+    fill = "Gender"
   ) +
-  theme_minimal()
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    panel.grid = element_blank(),
+    plot.title = element_text(size = 18, face = "bold")
+  )
+
+
+
 ```
 Graph 2
 ```{r}
 estimates_clean |>
-  select(year, region_subregion_country_or_area_, male_population_as_of_1_july_thousands, female_population_as_of_1_july_thousands) |>
-  filter(region_subregion_country_or_area_ == "World") |>
-  ggplot(aes(x = as.numeric(year), y = female_population_as_of_1_july_thousands)) +
-  geom_line() + geom_point() +
+  select(year, region_subregion_country_or_area_, female_population_as_of_1_july_thousands) |>
+  filter(region_subregion_country_or_area_ %in% c("World", "Asia", "United States of America", "Europe")) |>
+  ggplot(aes(x = as.numeric(year), y = female_population_as_of_1_july_thousands, color = region_subregion_country_or_area_)) +
+  geom_line() + 
+  geom_point() +
   labs(
-    title = "Female Population Over Time",
+    title = "Female Population Over Time: World, China, Usa",
     x = "Year",
-    y = "Male Population (Thousands)"
+    y = "Female Population (Thousands)",
+    color = "Region"
   ) +
   theme_minimal()
+
 ```
-What percentage of the world is male/female (pie chart with percentage of male and females in 2024?)
+The shape of the line graphs suggests that male and females in their respective countries are expected to grow at a similiar rate; however, a side by side comparison suggests otherwise
 Graph 3
 ```{r}
-# Create the pie chart with labels for male and female populations
-library(ggplot2)
-library(dplyr)
-
-# Create the pie chart with labels for male and female populations in billions
 estimates_clean |>
-  filter(year == "2023", region_subregion_country_or_area_ == "World") |>
-  pivot_longer(
-    cols = c(male_population_as_of_1_july_thousands, female_population_as_of_1_july_thousands),
-    names_to = "Gender", values_to = "Population"
-  ) |>
-  mutate(
-    Gender = ifelse(Gender == "male_population_as_of_1_july_thousands", "Male", "Female"),
-    Population_Billions = Population / 1e6,  # Convert thousands to billions
-    Label = paste0(Gender, ": ", round(Population_Billions, 2), "B")  # Format label with "B"
-  ) |>
-  ggplot(aes(x = "", y = Population, fill = Gender)) +
-  geom_bar(stat = "identity", width = 1) +
-  coord_polar("y", start = 0) +
-  geom_text(aes(label = Label), position = position_stack(vjust = 0.5)) +
+  select(year, region_subregion_country_or_area_, male_population_as_of_1_july_thousands, female_population_as_of_1_july_thousands) |>
+  filter(region_subregion_country_or_area_ %in% c("World", "Asia", "United States of America", "Europe")) |>
+  pivot_longer(cols = c(male_population_as_of_1_july_thousands, female_population_as_of_1_july_thousands),
+               names_to = "gender", values_to = "population") |>
+  ggplot(aes(x = as.numeric(year), y = population, color = gender)) +
+  geom_line(size = 1.0) +
+  facet_wrap(~region_subregion_country_or_area_, scales = "free_y") +
   labs(
-    title = "Male and Female Population in the World (2023)",
-    x = NULL,
-    y = NULL
+    title = "Male vs Female Population Over Time",
+    subtitle = "Faceted by Region",
+    x = "Year",
+    y = "Population (Thousands)",
+    color = "Gender"
   ) +
-  scale_fill_manual(values = c("Male" = "#56B4E9", "Female" = "#F0E442")) +
-  theme_void()
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "top",
+    plot.title = element_text(size = 18, face = "bold"),
+    plot.subtitle = element_text(size = 14, face = "italic"),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    strip.text = element_text(size = 14, face = "bold")
+  )
 
 
 ```
 What percentage of the world is male/female (pie chart with percentage of male and female based on UN estimates in 2100?)
 Graph 4
 ```{r}
-medium_clean |> filter(year == "2100", region_subregion_country_or_area_ == "World") |> pivot_longer(
-    cols = c(male_population_as_of_1_july_thousands, female_population_as_of_1_july_thousands), names_to = "Gender", values_to = "Population") |> mutate(Gender = ifelse(Gender == "male_population_as_of_1_july_thousands", "Male", "Female"),Population_Billions = Population / 1e6,  # Convert thousands to billions
-    Label = paste0(Gender, ": ", round(Population_Billions, 2), "B")  # Format label with "B"
+estimates_clean |>
+  filter(region_subregion_country_or_area_ %in% c("World", "Asia", "United States of America", "Europe")) |>
+  mutate(
+    male_to_female_ratio = male_population_as_of_1_july_thousands / female_population_as_of_1_july_thousands
   ) |>
-  ggplot(aes(x = "", y = Population, fill = Gender)) +
-  geom_bar(stat = "identity", width = 1) +
-  coord_polar("y", start = 0) +
-  geom_text(aes(label = Label), position = position_stack(vjust = 0.5)) +
+  ggplot(aes(x = as.numeric(year), y = male_to_female_ratio)) +
+  geom_line(size = 1.2, color = "blue") +
+  facet_wrap(~region_subregion_country_or_area_) +  # Fixed y-scales
   labs(
-    title = "Male and Female Population in the World (2100)",
-    x = NULL,
-    y = NULL
+    title = "Male-to-Female Population Ratio Over Time",
+    subtitle = "Faceted by Region (World, China, USA, Europe) with Consistent Y-Axis Scaling",
+    x = "Year",
+    y = "Male-to-Female Ratio"
   ) +
-  scale_fill_manual(values = c("Male" = "#56B4E9", "Female" = "#F0E442")) +
-  theme_void()
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(size = 18, face = "bold"),
+    plot.subtitle = element_text(size = 14, face = "italic"),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    strip.text = element_text(size = 14, face = "bold")  # Bold facet titles
+  )
+
+
+
 ```
-What about in different countries with different cultural stigmas around gender preference (2024)?
-Graph 5
+GRAPH 5
+Heatmap: Fertility rate for multiple countries over decades
+# Create a heat map 
 ```{r}
-
-
+combined_data %>% filter(region_subregion_country_or_area_ %in% c("United States", "China", "India",  "Russia", "Japan", "South Korea", "Vietnam", "Nigeria", "Saudi Arabia")) %>% select(year, region_subregion_country_or_area_, total_fertility_rate_live_births_per_woman) %>%  ggplot(aes(x = as.numeric(year), y = region_subregion_country_or_area_, fill = total_fertility_rate_live_births_per_woman)) + geom_tile(color = "white") + scale_fill_viridis_c(option = "magma", name = "Fertility Rate") +labs(title = "Fertility Rate Heatmap (1950-2100)", x = "Year", y = "Country") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
-What about in the future (Same graph as above but for 2100)?
-Graph 6
+GRAPH 6
+Bar chart:  Fertility rates in major continents of the world in year 2100
+# Filters data for the year 2100 and the major continents 
+
 ```{r}
-
-
+medium_clean %>% filter(year == 2100, region_subregion_country_or_area_ %in% c("Northern America", "Asia", "Europe", "Africa", "Latin America and the Caribbean")) %>%  group_by(region_subregion_country_or_area_) %>%
+ summarize(avg_fertility_rate = mean(total_fertility_rate_live_births_per_woman, na.rm = TRUE)) %>%
+ggplot(aes(x = region_subregion_country_or_area_, y = avg_fertility_rate, fill = region_subregion_country_or_area_)) + geom_bar(stat = "identity", width = 0.6) + labs(title = "Fertility Rates in Major Continents in 2100", x = "Continents", y = "Fertility Rate (Live Births per Woman)", fill = "Continents") + theme_minimal() + theme(
+    axis.text.x = element_blank() # Removes x-axis text
+  )
 ```
-What about life expectabncy?
-Graph 7
+
+GRAPH 7
+Line chart: Trends in Fertility Rates Over Time: United States vs. India
+# Filter data for US and India and create the line chart
 ```{r}
-
-
+estimates_clean %>%
+ filter(region_subregion_country_or_area_ %in% c("United States of America", "India")) %>%
+select(year, region_subregion_country_or_area_, total_fertility_rate_live_births_per_woman) %>%
+ggplot(aes(x = as.numeric(year),  y = total_fertility_rate_live_births_per_woman, color = region_subregion_country_or_area_)) + geom_line(size = 1) +  labs(title = "Trends in Fertility Rates Over Time: United States vs. India", x = "Year", y = "Fertility Rate (Live Births per Woman)", color = "Country") + theme_minimal()
 ```
+
 Graph 8
 ```{r}
+medium_clean |>
+  filter(region_subregion_country_or_area_ == "World") |> mutate(year = as.numeric(year)) |> ggplot(aes(x = year, y = crude_death_rate_deaths_per_1000_population)) + geom_line(group = 1, color = "blue") + geom_point(color = "blue") +
+  labs(
+    title = "Death Rate - World",x = "Year", y = "Deaths per 1000 People") + scale_x_continuous(breaks = c(2024, 2030, 2040, 2050, 2060, 2070, 2080, 2090, 2100)) +
+  theme_minimal()
+
 
 ```
 Graph 9
 ```{r}
+combined_data |>
+  select(year, region_subregion_country_or_area_, crude_death_rate_deaths_per_1000_population) |>
+  filter(region_subregion_country_or_area_ %in% c("World", "Africa", "Asia", "Europe", "Northern America", "Latin America and the Caribbean")) |>
+  ggplot(aes(x = as.numeric(year), y = crude_death_rate_deaths_per_1000_population, color = region_subregion_country_or_area_)) +
+  geom_line(size = .9) + 
+  geom_point(size = .3) +
+  labs(
+    title = "Death Rate Over Time",
+    x = "Year",
+    y = "Deaths per 1000 People)",
+    color = "Region"
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5), 
+    legend.position = "bottom",
+    legend.title = element_text(size = 14), 
+    legend.text = element_text(size = 12), 
+    axis.text.x = element_text(size = 12), 
+    axis.text.y = element_text(size = 12) 
+  ) +
+  scale_y_continuous(expand = c(0.02, 0.02)) + 
+  guides(color = guide_legend(nrow = 2))
 
 ```
 Graph 10
 ```{r}
+estimates_clean %>% 
+  filter(year == "2023", region_subregion_country_or_area_ %in% c("Northern America", "Asia", "Europe", "Africa", "Latin America and the Caribbean")) %>%  
+  group_by(region_subregion_country_or_area_) %>%
+ summarize(avg_death_rate = mean(crude_death_rate_deaths_per_1000_population, na.rm = TRUE)) %>%
+ggplot(aes(x = region_subregion_country_or_area_, y = avg_death_rate, fill = region_subregion_country_or_area_)) + 
+  geom_bar(stat = "identity", width = 0.6) + labs(title = "Death Rates in Major Continents in 2023", x = NULL, y = "Deaths per 1000 People", fill = "Continent") + 
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+  axis.ticks.x = element_blank()) +
+  scale_y_continuous(breaks = seq(0, 12, by = 2))
 
 ```
+
 Graph 11
 ```{r}
+library(ggplot2)
+library(dplyr)
+
+# Filter estimates_clean for Afghanistan, Iran, and Viet Nam
+selected_countries_data <- estimates_clean %>%
+  filter(
+    region_subregion_country_or_area_ %in% c("Afghanistan", "Iran (Islamic Republic of)", "Viet Nam"),
+    year >= 1950 & year <= 2024  # Filter for valid years
+  ) %>%
+  select(region_subregion_country_or_area_, year, life_expectancy_at_age_65_both_sexes_years) %>%
+  mutate(
+    year = as.numeric(year),  # Convert year to numeric
+    life_expectancy = as.numeric(life_expectancy_at_age_65_both_sexes_years)  # Convert life expectancy to numeric
+  ) %>%
+  filter(!is.na(life_expectancy))  # Remove rows with NA values
+
+# Create the line plot for Afghanistan, Iran, and Viet Nam
+ggplot(selected_countries_data, aes(x = year, y = life_expectancy, color = region_subregion_country_or_area_)) +
+  geom_line(linewidth = 1.5) +  # Line with custom width
+  geom_point(size = 2) +  # Add points for emphasis
+  labs(
+    title = "Life Expectancy at Age 65 in Afghanistan,\nIran, and Viet Nam (1950-2024)",
+    subtitle = "Trends over time reflect significant historical events.",
+    x = "Year",
+    y = "Life Expectancy (Years)",
+    color = "Country"
+  ) +
+  scale_x_continuous(breaks = seq(1950, 2025, by = 5)) +  # X-axis ticks every 5 years
+  scale_y_continuous(limits = c(6, 20), breaks = seq(6, 20, by = 2)) +  # Y-axis range 6–20, ticks every 2
+  scale_color_manual(
+    values = c("Afghanistan" = "red", "Iran (Islamic Republic of)" = "blue", "Viet Nam" = "orange")
+  ) +  # Custom colors
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 12, face = "italic"),
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate X-axis labels
+    legend.position = "bottom"  # Place legend at the bottom
+  )
 
 ```
+
+
 Graph 12
 ```{r}
+library(ggplot2)
+library(dplyr)
 
+# Filter estimates_clean for Bangladesh, China, and Haiti
+disaster_countries_data <- estimates_clean %>%
+  filter(
+    region_subregion_country_or_area_ %in% c("Bangladesh", "China", "Haiti"),
+    year >= 1950 & year <= 2024  # Filter for valid years
+  ) %>%
+  select(region_subregion_country_or_area_, year, life_expectancy_at_birth_both_sexes_years) %>%
+  mutate(
+    year = as.numeric(year),  # Convert year to numeric
+    life_expectancy = as.numeric(life_expectancy_at_birth_both_sexes_years)  # Convert life expectancy to numeric
+  ) %>%
+  filter(!is.na(life_expectancy))  # Remove rows with NA values
+
+# Create the line plot for Bangladesh, China, and Haiti
+ggplot(disaster_countries_data, aes(x = year, y = life_expectancy, color = region_subregion_country_or_area_)) +
+  geom_line(linewidth = 1.5) +  # Line with custom width
+  geom_point(size = 2) +  # Add points for emphasis
+  labs(
+    title = "Life Expectancy at Birth in Bangladesh, \nChina, and Haiti (1950-2024)",
+    subtitle = "Highlights the impact of major natural disasters on life expectancy.",
+    x = "Year",
+    y = "Life Expectancy (Years)",
+    color = "Country"
+  ) +
+  scale_x_continuous(breaks = seq(1950, 2025, by = 5)) +  # X-axis ticks every 5 years
+  scale_y_continuous(limits = c(30, 80), breaks = seq(30, 80, by = 10)) +  # Y-axis range 30–80, ticks every 10
+  scale_color_manual(
+    values = c("Bangladesh" = "green", "China" = "blue", "Haiti" = "orange")
+  ) +  # Custom colors
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 12, face = "italic"),
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate X-axis labels
+    legend.position = "bottom"  # Place legend at the bottom
+  )
 ```
 
 **5. Requirement-5 (2 pt)**
@@ -367,6 +523,71 @@ You can choose to predict the same metric the UN provides (e.g., future populati
 
 How significantly do your population projections diverge from those of the United Nations? Provide a comparison of the two.  If you choose a different projection for which there is no UN data to compare with, then this comparison is not required.
 
+```{r}
+# Load necessary libraries
+library(tidyverse)
+library(caret)
+
+# Filter the dataset for training (1950-2022)
+training_data <- selected_countries_data %>%
+  filter(year >= 1950 & year <= 2022)
+
+# Split data into training and testing sets
+set.seed(123)  # Set seed for reproducibility
+train_index <- createDataPartition(training_data$life_expectancy, p = 0.8, list = FALSE)
+train_set <- training_data[train_index, ]
+test_set <- training_data[-train_index, ]
+
+# Fit a linear regression model
+life_expectancy_model <- lm(life_expectancy ~ year + region_subregion_country_or_area_, data = train_set)
+
+# Model summary
+summary(life_expectancy_model)
+
+# Predict on the test set
+test_set$predicted_life_expectancy <- predict(life_expectancy_model, newdata = test_set)
+
+# Evaluate the model
+model_performance <- data.frame(
+  RMSE = RMSE(test_set$predicted_life_expectancy, test_set$life_expectancy),
+  R2 = R2(test_set$predicted_life_expectancy, test_set$life_expectancy)
+)
+print(model_performance)
+
+# Visualize predictions vs. actuals
+ggplot(test_set, aes(x = life_expectancy, y = predicted_life_expectancy, color = region_subregion_country_or_area_)) +
+  geom_point(size = 3, alpha = 0.7) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray") +  # Line of perfect prediction
+  labs(
+    title = "Predicted vs. Actual Life Expectancy at Age 65",
+    x = "Actual Life Expectancy (Years)",
+    y = "Predicted Life Expectancy (Years)",
+    color = "Country"
+  ) +
+  theme_minimal(base_size = 14)
+
+# Predict for the entire dataset (including 2023-2024 for comparison with UN data)
+selected_countries_data$predicted_life_expectancy <- predict(life_expectancy_model, newdata = selected_countries_data)
+
+# Plot predictions vs. UN estimates
+ggplot(selected_countries_data, aes(x = year)) +
+  geom_line(aes(y = life_expectancy, color = region_subregion_country_or_area_), size = 1.2) +
+  geom_line(aes(y = predicted_life_expectancy, color = region_subregion_country_or_area_), linetype = "dashed") +
+  labs(
+    title = "Comparison of Predicted vs. UN Life Expectancy at Age 65",
+    subtitle = "Predicted values from linear regression model.",
+    x = "Year",
+    y = "Life Expectancy (Years)",
+    color = "Country"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 12, face = "italic"),
+    legend.position = "bottom"
+  )
+
+```
 
 **6.  Requirement-5 (1 pt)**
 
