@@ -801,7 +801,6 @@ model_performance <- data.frame(
   )
 )
 print(model_performance)
-
 # Visualize predictions vs. actuals
 ggplot(
   test_set,
@@ -821,6 +820,11 @@ ggplot(
     color = "Country"
   ) +
   theme_minimal(base_size = 14)
+```
+
+The scatterplot compares predicted life expectancy at age 65 against actual life expectancy for Afghanistan, Iran, and Vietnam, with the diagonal line representing perfect agreement between the two. Afghanistan’s points are mostly below the diagonal, indicating that the model tends to overestimate life expectancy for the country, likely reflecting the challenges of modeling outcomes in a region heavily affected by conflict and instability. Iran’s points cluster closer to the diagonal, suggesting that the predictions are generally accurate, reflecting more stable socioeconomic conditions and health infrastructure. Vietnam’s points are consistently aligned with or slightly above the diagonal, highlighting the model’s strong predictive performance for the country, likely due to the effectiveness of economic and health reforms that align closely with measurable outcomes. Overall, the scatterplot illustrates varying levels of predictive accuracy across the three countries, reflecting differences in the stability and predictability of factors influencing life expectancy.
+
+```{r}
 
 # Predict for the entire dataset (including 2023-2024 for comparison with UN data)
 selected_countries_data$predicted_life_expectancy <- predict(life_expectancy_model, newdata = selected_countries_data)
@@ -849,6 +853,9 @@ ggplot(selected_countries_data, aes(x = year)) +
   )
 ```
 
+The graph compares predicted life expectancy at age 65 (from a linear regression model) with UN-recorded life expectancy for Afghanistan, Iran, and Vietnam over time. Afghanistan consistently has the lowest life expectancy, with gradual improvement and notable declines in the late 1980s and early 1990s. Iran shows steady growth, maintaining a middle ground between the other two countries, with less volatility than Afghanistan. Vietnam demonstrates the highest life expectancy throughout, with significant increases over time and noticeable alignment between predicted and recorded values, particularly in recent years.
+
+The differences in life expectancy trends among Afghanistan, Iran, and Vietnam can be attributed to a variety of historical, political, economic, and healthcare factors unique to each country. Afghanistan's consistently low life expectancy reflects the impact of prolonged conflict, including wars and political instability, which have severely disrupted healthcare systems, infrastructure, and overall living conditions. The declines observed in the late 1980s and early 1990s likely correspond to the aftermath of the Soviet-Afghan War and the subsequent civil unrest, further exacerbating challenges like poverty and limited access to clean water, nutrition, and medical care. In contrast, Iran shows steady growth in life expectancy, likely benefiting from investments in healthcare infrastructure, economic development, and social programs following the 1979 revolution. Despite political challenges and international sanctions, Iran has maintained significant improvements in health outcomes, which may explain its stable upward trend. Vietnam demonstrates the highest life expectancy throughout the period, reflecting the country’s economic reforms (Doi Moi) beginning in the late 1980s, which enhanced healthcare accessibility, reduced poverty, and improved living standards. The alignment of predicted and recorded life expectancy values in recent years for Vietnam suggests the effectiveness of policies aimed at sustaining health and social welfare.
 
 **6.  Requirement-5 (1 pt)**
 
